@@ -1,0 +1,20 @@
+name: Cleanup Old DevContainer Images
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # Run weekly on Sunday
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+
+    steps:
+      - name: Delete old package versions
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: 'blockchain-devcontainer'
+          package-type: 'container'
+          min-versions-to-keep: 3  # Keep at least 3

@@ -1,0 +1,23 @@
+{
+    "name": "Python devcontainer",
+    "image": "ghcr.io/flixman/blockchain-devcontainer:latest",
+    "runArgs": ["--security-opt", "label=disable"],
+    "postCreateCommand": "pre-commit install",
+    "remoteUser": "vscode",
+    "forwardPorts": [8000],
+    "portsAttributes": {
+        "8000": {
+            "label": "Blockchain API",
+            "onAutoForward": "notify"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-azuretools.vscode-docker",
+                "timonwong.shellcheck",
+                "ms-python.python"
+            ]
+        }
+    }
+}

@@ -1,0 +1,62 @@
+# pyproject.toml
+[project]
+name = "blockchain"
+version = "0.1.0"
+description = "Blockchain PoC"
+requires-python = ">=3.13"
+authors = [
+    {name="Felix", email="felix@example.com"}
+]
+dependencies = [
+    "fastapi==0.136.1",
+    "pandas==3.0.2",
+    "requests==2.33.1",
+    "uvicorn==0.46.0"
+]
+
+# Optional dev dependencies (pytest, etc.)
+[project.optional-dependencies]
+dev = [
+    "pytest==9.0.3",
+    "httpx==0.28.1",
+    "hypothesis==6.152.2",
+    "pytest-cov==7.1.0",
+    "pre-commit==4.5.1",
+    "ruff==0.15.5",
+    "bandit==1.9.4",
+    "ty==0.0.21",
+    "safety==3.7.0"
+]
+
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["blockchain"]
+
+[tool.pytest.ini_options]
+addopts = "--cov=blockchain --cov-report=term-missing --cov-fail-under=95 --cov-branch"
+testpaths = ["blockchain/tests", "tests"]
+markers = [
+    "security: marks tests that verify security properties (fraud prevention, signature validation, balance checks, etc.)",
+    "integration: marks integration tests that test multiple components together",
+]
+
+[tool.coverage.run]
+omit = ["blockchain/tests/*"]
+
+[tool.ruff]
+line-length = 128
+fix = true
+
+[tool.ruff.lint]
+ignore = ["D203", "D212"]  # global ignores
+select = ["ALL"]
+exclude = ["blockchain/tests/*"]
+
+[tool.ty.environment]
+extra-paths = ["/home/vscode/.local/lib/python3.13/site-packages", "./blockchain"]
+
+[tool.pyright]
+pythonVersion = "3.13"

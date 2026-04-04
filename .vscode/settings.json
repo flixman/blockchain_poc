@@ -1,0 +1,13 @@
+{
+    "python.analysis.extraPaths": [],          // usually not needed if venv is correct
+    "python.languageServer": "Pylance",
+    "python.analysis.typeCheckingMode": "strict",
+    // "python.analysis.diagnosticMode": "workspace",
+    "python-envs.defaultEnvManager": "ms-python.python:system",
+    "python-envs.pythonProjects": [],
+    "python.testing.pytestArgs": [
+        "blockchain"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
+}

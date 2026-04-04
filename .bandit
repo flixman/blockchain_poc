@@ -1,0 +1,2 @@
+skips: ["B101"]  # global skips if any
+targets: ["**/*.py"]

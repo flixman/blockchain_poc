@@ -1,0 +1,74 @@
+repos:
+  # File hygiene & safety (runs first, cheap + prevents garbage)
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=1000"]
+      - id: check-yaml
+      - id: check-toml
+      - id: detect-private-key
+      - id: mixed-line-ending
+      - id: debug-statements              # blocks pdb / print left in code
+        stages: [pre-push]
+
+  # Ruff: fast linter (replaces flake8, isort, pycodestyle, etc.)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.4   # Pin exact version for reproducibility
+    hooks:
+      # Run the linter
+      - id: ruff-check
+        stages: [pre-push]
+      # Run the formatter
+      - id: ruff-format
+
+  # ty: static type checker
+  - repo: local
+    hooks:
+      - id: ty
+        stages: [pre-push]
+        name: ty check
+        entry: ty check
+        language: system
+        types: [python]
+        pass_filenames: false # Ty checks the whole project
+
+  # Security scanning (Python-focused)
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.9.4
+    hooks:
+      - id: bandit
+        args: ["-q", "-c", ".bandit", "-r", "."]          # Quiet, recursive scan
+        stages: [pre-push]
+
+  # Dependency vulnerability check
+  - repo: local
+    hooks:
+      - id: safety
+        name: "Check Python dependencies for vulnerabilities"
+        entry: bash -c "safety check --full-report"
+        language: system
+        pass_filenames: false   # runs on all dependencies, not on staged files
+        stages: [pre-push]
+
+  # Gitleaks: scans staged changes for secrets (API keys, tokens, passwords)
+  - repo: https://github.com/zricethezav/gitleaks
+    rev: v8.30.0
+    hooks:
+      - id: gitleaks
+        stages: [pre-push]
+        # Scans only staged changes by default (fast)
+        # Fails the commit if secrets are detected
+
+  # Run tests with coverage before commit
+  - repo: local
+    hooks:
+      - id: pytest-coverage
+        name: "Run pytest with coverage"
+        entry: pytest
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
