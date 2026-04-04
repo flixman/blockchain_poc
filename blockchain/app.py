@@ -51,8 +51,8 @@ def create_app(node: Node | None = None) -> FastAPI:
             txn = tx.get_transaction()
             logger.info("Received transaction: %s", txn)
             # CHALLENGE: prevent miner impersonation
-            if txn.sender_pubkey == b"" and txn.signature == b"":
-                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="External miner reward")
+            # if txn.sender_pubkey == b"" and txn.signature == b"":
+            #     raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="External miner reward")
             _node.add_transaction(txn)
         except InvalidTransactionSignature:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid transaction signature")

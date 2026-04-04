@@ -42,8 +42,8 @@ class Node:
 
         total = tx.amount + tx.fee
         # CHALLENGE: prevent unauthorized minting
-        if sender_wallet.balance < total:
-            raise InvalidAccountBalance(f"Insufficient funds: {sender_wallet.balance} < {total}")
+        # if sender_wallet.balance < total:
+        #     raise InvalidAccountBalance(f"Insufficient funds: {sender_wallet.balance} < {total}")
 
         sender_wallet.balance -= total
         recipient_wallet.balance += tx.amount

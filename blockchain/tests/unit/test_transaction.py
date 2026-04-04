@@ -82,7 +82,7 @@ class TestTransaction:
         tx = wallet.new_transaction(b"bob", 10, 1)
         tx.signature += b"0"
 
-        assert not tx._validate()
+        assert not tx._verify()
 
     @pytest.mark.security
     def test_transaction_signature_tampering_detected(self):
@@ -94,7 +94,7 @@ class TestTransaction:
         tx.recipient = b"alice"
 
         # Signature should no longer be valid
-        assert not tx._validate()
+        assert not tx._verify()
 
     @pytest.mark.security
     def test_transaction_amount_tampering_detected(self):
@@ -106,7 +106,7 @@ class TestTransaction:
         tx.amount = 100
 
         # Signature should no longer be valid
-        assert not tx._validate()
+        assert not tx._verify()
 
     @pytest.mark.security
     def test_only_sender_can_sign_transaction(self):

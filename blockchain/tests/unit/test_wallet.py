@@ -77,7 +77,7 @@ class TestWallet:
         tx = wallet.new_transaction(b"bob", 10, 1)
 
         # Transaction should be valid
-        assert tx._validate()
+        assert tx._verify()
 
     @pytest.mark.security
     def test_wallet_cannot_forge_signature_of_another_wallet(self):
@@ -100,4 +100,4 @@ class TestWallet:
         )
 
         # Signature should be invalid (signed by different key than sender)
-        assert not forged_tx._validate()
+        assert not forged_tx._verify()

@@ -50,8 +50,8 @@ class Transaction:
         """
         return self.sender_pubkey + self.recipient + self.amount.to_bytes(8, "big") + self.fee.to_bytes(8, "big")
 
-    def _validate(self):
-        """Validate the transaction signature.
+    def _verify(self):
+        """Verify the transaction signature.
 
         Verifies that the signature was created by the sender's private key
         corresponding to sender_pubkey. Returns False if validation fails.
@@ -76,8 +76,8 @@ class Transaction:
                 return
 
             # CHALLENGE: prevent wallet impersonation
-            if not self._validate():
-                raise InvalidTransactionSignature
+            # if not self._verify():
+            #     raise InvalidTransactionSignature
         else:
             self.signature = sender_privkey.sign(self.payload, ec.ECDSA(hashes.SHA256()))
 
