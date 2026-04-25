@@ -1,18 +1,20 @@
+"""Module for node definition and operations."""
+
+# ruff: noqa: ERA001
 from uuid import uuid4
 
 from blockchain.account_balance import AccountBalance
 from blockchain.block import Block
 from blockchain.blockchain import Blockchain
 from blockchain.mempool import Mempool
-from blockchain.wallet import Wallet
 from blockchain.transaction import Transaction
-
+from blockchain.wallet import Wallet
 
 _FIXED_REWARD = 100
 
 
-class InvalidAccountBalance(Exception):
-    """Exception raised when a transaction is invalid due to insufficient balances"""
+class InvalidAccountBalanceError(Exception):
+    """Exception raised when a transaction is invalid due to insufficient balances."""
 
 
 class Node:
@@ -43,7 +45,7 @@ class Node:
         total = tx.amount + tx.fee
         # CHALLENGE: prevent unauthorized minting
         # if sender_wallet.balance < total:
-        #     raise InvalidAccountBalance(f"Insufficient funds: {sender_wallet.balance} < {total}")
+        #     raise InvalidAccountBalanceError(f"Insufficient funds: {sender_wallet.balance} < {total}")
 
         sender_wallet.balance -= total
         recipient_wallet.balance += tx.amount
@@ -52,16 +54,17 @@ class Node:
 
     def _mine(self) -> None:
         """Create a block out of the mempool transactions."""
-
         select_transactions = self._mempool.top(10)
 
         reward = _FIXED_REWARD + sum(x.fee for x in select_transactions)
         coinbase = Transaction(b"", self._miner_wallet.address, reward, 0)
 
-        select_transactions = [coinbase] + select_transactions
+        select_transactions = [coinbase, *select_transactions]
 
         block = Block.proof_of_work(
-            last_block=self._blockchain.last_block, transactions=select_transactions, difficulty=self._difficulty
+            last_block=self._blockchain.last_block,
+            transactions=select_transactions,
+            difficulty=self._difficulty,
         )
 
         self._blockchain.add_block(block)
@@ -73,6 +76,7 @@ class Node:
             self._mempool.remove(tx)
 
     def get_account_balance(self, pubkey: bytes) -> AccountBalance:
+        """Return the balance of the account."""
         try:
             return self._account_balances[pubkey]
         except KeyError:

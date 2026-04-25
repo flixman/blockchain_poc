@@ -1,14 +1,14 @@
 """Module for node server definition and operations."""
 
+# ruff: noqa: ERA001
 import logging
 import sys
 
 from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel
 
-from blockchain.node import Node, InvalidAccountBalance
-from blockchain.transaction import InvalidTransactionSignature, Transaction
-
+from blockchain.node import InvalidAccountBalanceError, Node
+from blockchain.transaction import InvalidTransactionSignatureError, Transaction
 
 logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 
@@ -25,10 +25,12 @@ class TransactionModel(BaseModel):
     signature: str
 
     def get_transaction(self) -> Transaction:
-        """Convert the Pydantic model to a Transaction instance.
+        """
+        Convert the Pydantic model to a Transaction instance.
 
         Returns:
             Transaction: Transaction object created from this model's fields.
+
         """
         return Transaction(
             sender_pubkey=bytes.fromhex(self.sender_pubkey),
@@ -52,43 +54,65 @@ def create_app(node: Node | None = None) -> FastAPI:
             logger.info("Received transaction: %s", txn)
             # CHALLENGE: prevent miner impersonation
             # if txn.sender_pubkey == b"" and txn.signature == b"":
-            #     raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="External miner reward")
+            #     raise HTTPException(
+            #         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            #         detail="External miner reward"
+            #     ) from None
             _node.add_transaction(txn)
-        except InvalidTransactionSignature:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid transaction signature")
-        except InvalidAccountBalance:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Insufficient funds")
+        except InvalidTransactionSignatureError:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="Invalid transaction signature",
+            ) from None
+        except InvalidAccountBalanceError:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Insufficient funds") from None
 
+    # ruff: disable[SLF001]
     @app.get("/blocks", status_code=status.HTTP_200_OK)
     async def get_blocks() -> list[dict[str, object]]:  # pyright: ignore[reportUnusedFunction] # pragma: nocover
-        """Return the blockchain as JSON-serializable block data."""
+        """
+        Return the blockchain as JSON-serializable block data.
+
+        This method is here only for the sake of an example, so that
+        students can retrieve the in-memory chain for inspection.
+        """
         return [block.to_dict() for block in _node._blockchain.chain]
 
     @app.post("/wallets/{pubkey}/topup", status_code=status.HTTP_200_OK)
     async def top_up_wallet(pubkey: str) -> None:  # pyright: ignore[reportUnusedFunction] # pragma: nocover
-        """Put money on the wallet, mining a block for it if required"""
+        """
+        Put money on the wallet, mining a block for it if required.
 
+        This method is here only for the sake of an example, so that
+        students do not run out of money while playing.
+        """
         try:
             pubkey_bytes = bytes.fromhex(pubkey)
         except ValueError:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid public key")
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid public key") from None
 
-        if _node.get_account_balance(_node._miner_wallet.public_key_bytes).balance < 10:
+        if _node.get_account_balance(_node._miner_wallet.public_key_bytes).balance < 10:  # noqa: PLR2004
             _node._mine()
+
         txn = Transaction(
-            _node._miner_wallet.public_key_bytes, pubkey_bytes, 10, 0, sender_privkey=_node._miner_wallet._private_key
+            _node._miner_wallet.public_key_bytes,
+            pubkey_bytes,
+            10,
+            0,
+            sender_privkey=_node._miner_wallet._private_key,
         )
         _node.add_transaction(txn)
         _node._mine()
         logger.info("Startup money: %s", txn)
 
+    # ruff: enable[SLF001]
     @app.get("/wallets/{pubkey}/balance", status_code=status.HTTP_200_OK)
     async def get_wallet_balance(pubkey: str) -> dict[str, int | str]:  # pyright: ignore[reportUnusedFunction] # pragma: nocover
         """Return the current balance for the wallet identified by its public key."""
         try:
             pubkey_bytes = bytes.fromhex(pubkey)
-        except ValueError as exc:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid public key")
+        except ValueError:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid public key") from None
 
         balance = _node.get_account_balance(pubkey_bytes).balance
         return {"balance": balance}

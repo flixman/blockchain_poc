@@ -6,7 +6,6 @@ import uvicorn
 
 from blockchain.app import create_app
 
-
 if __name__ == "__main__":  # pragma: no cover
     """Start the blockchain API server."""
     parser = argparse.ArgumentParser(description="Start the blockchain FastAPI server.")

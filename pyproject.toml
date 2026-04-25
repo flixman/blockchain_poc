@@ -53,10 +53,10 @@ fix = true
 [tool.ruff.lint]
 ignore = ["D203", "D212"]  # global ignores
 select = ["ALL"]
-exclude = ["blockchain/tests/*"]
+exclude = ["blockchain/tests/**", "tests/**"]
 
 [tool.ty.environment]
-extra-paths = ["/home/vscode/.local/lib/python3.13/site-packages", "./blockchain"]
+extra-paths = ["/home/vscode/.local/lib/python3.13/site-packages", "."]
 
 [tool.pyright]
 pythonVersion = "3.13"

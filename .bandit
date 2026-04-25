@@ -1,2 +1,2 @@
-skips: ["B101"]  # global skips if any
-targets: ["**/*.py"]
+skips: ["B101"]
+exclude_dirs: ["tests/system"]

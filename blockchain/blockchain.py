@@ -61,4 +61,5 @@ class Blockchain:
         return cls(_chain=[Block.from_dict(b) for b in blocks_data])
 
     def __repr__(self) -> str:
+        """Return a string with the contents of the chain."""
         return ",".join(str(x) for x in self._chain)

@@ -6,7 +6,7 @@ mining, and block creation. Includes security tests for fraud prevention.
 # pyright: reportPrivateUsage=false
 
 import pytest
-from blockchain.node import Node, InvalidAccountBalance
+from blockchain.node import Node, InvalidAccountBalanceError
 
 
 class TestNode:
@@ -60,7 +60,7 @@ class TestNode:
         # Try to spend more than available
         tx = node._miner_wallet.new_transaction(b"bob", total_balance + 1, 0)
 
-        with pytest.raises(InvalidAccountBalance):
+        with pytest.raises(InvalidAccountBalanceError):
             node.add_transaction(tx)
 
     @pytest.mark.security
@@ -79,7 +79,7 @@ class TestNode:
 
         tx2 = node._miner_wallet.new_transaction(b"alice", remaining_balance + 1, 0)
 
-        with pytest.raises(InvalidAccountBalance):
+        with pytest.raises(InvalidAccountBalanceError):
             node.add_transaction(tx2)
 
     @pytest.mark.security
@@ -95,5 +95,5 @@ class TestNode:
 
         tx = poor_wallet.new_transaction(b"bob", 1, 0)
 
-        with pytest.raises(InvalidAccountBalance):
+        with pytest.raises(InvalidAccountBalanceError):
             node.add_transaction(tx)

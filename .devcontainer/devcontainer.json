@@ -2,6 +2,7 @@
     "name": "Python devcontainer",
     "image": "ghcr.io/flixman/blockchain-devcontainer:latest",
     "runArgs": ["--security-opt", "label=disable"],
+    "postCreateCommand": "pre-commit install",
     "remoteUser": "vscode",
     "forwardPorts": [8000],
     "portsAttributes": {

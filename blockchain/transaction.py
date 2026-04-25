@@ -1,13 +1,13 @@
 """Module for a transaction definition and operations."""
 
 import hashlib
-from dataclasses import InitVar, dataclass, field, fields
-from typing import Any, Optional, Self
 import logging
+from dataclasses import InitVar, dataclass, field, fields
+from typing import Any, Self
 
-from cryptography.hazmat.primitives.asymmetric import ec
+import cryptography.exceptions
 from cryptography.hazmat.primitives import hashes
-
+from cryptography.hazmat.primitives.asymmetric import ec
 
 logger = logging.getLogger("Transaction")
 
@@ -22,8 +22,8 @@ def hex_to_bytes(s: str) -> bytes:
     return bytes.fromhex(s)
 
 
-class InvalidTransactionSignature(Exception):
-    """Models an exception due to an invalid signature"""
+class InvalidTransactionSignatureError(Exception):
+    """Models an exception due to an invalid signature."""
 
 
 @dataclass
@@ -35,11 +35,12 @@ class Transaction:
     amount: int
     fee: int = 0
     signature: bytes = field(default=b"", metadata={"serialize": bytes_to_hex, "deserialize": hex_to_bytes})
-    sender_privkey: InitVar[Optional[ec.EllipticCurvePrivateKey]] = None
+    sender_privkey: InitVar[ec.EllipticCurvePrivateKey | None] = None
 
     @property
     def payload(self) -> bytes:
-        """Generate the payload for transaction signing.
+        """
+        Generate the payload for transaction signing.
 
         The payload consists of concatenated fields: sender pubkey, recipient,
         amount (8 bytes), and fee (8 bytes). This creates the data that is
@@ -47,28 +48,31 @@ class Transaction:
 
         Returns:
             bytes: Serialized transaction payload for signing.
+
         """
         return self.sender_pubkey + self.recipient + self.amount.to_bytes(8, "big") + self.fee.to_bytes(8, "big")
 
-    def _verify(self):
-        """Verify the transaction signature.
+    def _verify(self) -> bool:
+        """
+        Verify the transaction signature.
 
         Verifies that the signature was created by the sender's private key
         corresponding to sender_pubkey. Returns False if validation fails.
 
         Returns:
             bool: True if signature is valid, False otherwise.
+
         """
-        pub = ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256K1(), self.sender_pubkey)
         try:
+            pub = ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256K1(), self.sender_pubkey)
             pub.verify(self.signature, self.payload, ec.ECDSA(hashes.SHA256()))
-            return True
-        except Exception:
+        except (cryptography.exceptions.InvalidSignature, ValueError, TypeError, AttributeError):
             return False
+        else:
+            return True
 
-    def __post_init__(self, sender_privkey: Optional[ec.EllipticCurvePrivateKey] = None):
+    def __post_init__(self, sender_privkey: ec.EllipticCurvePrivateKey | None) -> None:
         """If the signature is not valid, raise."""
-
         # if there is no private key, validate signature. Otherwise, sign
         if sender_privkey is None:
             # if both sender and signature are empty, this is a reward for a block mined
@@ -77,7 +81,7 @@ class Transaction:
 
             # CHALLENGE: prevent wallet impersonation
             # if not self._verify():
-            #     raise InvalidTransactionSignature
+            #     raise InvalidTransactionSignatureError
         else:
             self.signature = sender_privkey.sign(self.payload, ec.ECDSA(hashes.SHA256()))
 
@@ -86,9 +90,12 @@ class Transaction:
         """Calculate the hash of the transaction."""
         return hashlib.sha256(self.payload).digest()
 
+    def __hash__(self) -> int:
+        """Return the hash of the payload."""
+        return hash(self.payload)
+
     def __repr__(self) -> str:
         """Provide a user-friendly string for representation."""
-
         return (
             "Transaction("
             f"sender_pubkey={self.sender_pubkey.hex()[:8]}, "
@@ -98,11 +105,11 @@ class Transaction:
         )
 
     def __eq__(self, other: object) -> bool:
+        """Return whether the other object contains the same payload and signature, or not."""
         return isinstance(other, type(self)) and self.payload == other.payload and self.signature == other.signature
 
     def to_dict(self) -> dict[str, Any]:
         """Return a view of the class as a dictionary."""
-
         result: dict[str, Any] = {}
         for f in fields(self):
             value = getattr(self, f.name)
@@ -113,7 +120,6 @@ class Transaction:
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> Self:
         """Convert a given dictionary into an instance of the class."""
-
         init_kwargs: dict[str, Any] = {}
 
         for f in fields(cls):

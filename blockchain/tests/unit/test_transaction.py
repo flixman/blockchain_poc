@@ -143,9 +143,9 @@ class TestTransaction:
         tx_dict["signature"] = tx.signature.hex()  # Use original signature
         tx_dict["sender_pubkey"] = tx.sender_pubkey.hex()
 
-        from blockchain.transaction import InvalidTransactionSignature
+        from blockchain.transaction import InvalidTransactionSignatureError
 
-        with pytest.raises(InvalidTransactionSignature):
+        with pytest.raises(InvalidTransactionSignatureError):
             Transaction.from_dict(tx_dict)
 
 

@@ -2,8 +2,8 @@ import subprocess
 import sys
 import time
 
-import requests
 import pytest
+import requests
 
 
 @pytest.fixture
@@ -58,7 +58,17 @@ def test_fresh_wallet_cannot_send(server, tmp_path):
     assert result.returncode == 0
 
     result = run_client(
-        "--server", server, "--wallet-file", str(wallet), "send", "--recipient", "0x1234", "--amount", "1", "--fee", "0"
+        "--server",
+        server,
+        "--wallet-file",
+        str(wallet),
+        "send",
+        "--recipient",
+        "0x1234",
+        "--amount",
+        "1",
+        "--fee",
+        "0",
     )
     assert result.returncode != 0
     assert "Insufficient funds" in result.stderr or "insufficient" in result.stderr.lower()
@@ -74,7 +84,17 @@ def test_wallet_can_send(server, tmp_path):
     assert result.returncode == 0
 
     result = run_client(
-        "--server", server, "--wallet-file", str(wallet), "send", "--recipient", "0x1234", "--amount", "1", "--fee", "0"
+        "--server",
+        server,
+        "--wallet-file",
+        str(wallet),
+        "send",
+        "--recipient",
+        "0x1234",
+        "--amount",
+        "1",
+        "--fee",
+        "0",
     )
     assert result.returncode == 0
     assert "transaction accepted" in result.stderr

@@ -2,9 +2,9 @@
 
 import hashlib
 
-from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec
 
 from blockchain.transaction import Transaction
 
@@ -13,8 +13,7 @@ class Wallet:
     """Model a wallet, that can sign transactions."""
 
     def __init__(self) -> None:
-        """Initialize the private and public members"""
-
+        """Initialize the private and public members."""
         self._private_key = ec.generate_private_key(ec.SECP256K1(), default_backend())
         self.public_key_bytes = self._private_key.public_key().public_bytes(
             encoding=serialization.Encoding.X962,
@@ -22,15 +21,21 @@ class Wallet:
         )
 
     def __eq__(self, other: object) -> bool:
+        """Return if the other instance is equivalent to self."""
         return isinstance(other, type(self)) and self._private_key == other._private_key
+
+    def __hash__(self) -> int:
+        """Get the hash of this object."""
+        return hash(self._private_key)
 
     @property
     def address(self) -> bytes:
-        """Get the address (pubkey digest)"""
+        """Get the address (pubkey digest)."""
         return hashlib.sha256(self.public_key_bytes).digest()
 
     def new_transaction(self, recipient: bytes, amount: int, fee: int) -> Transaction:
-        """Create a new signed transaction from this wallet.
+        """
+        Create a new signed transaction from this wallet.
 
         Args:
             recipient: Recipient's address (bytes).
@@ -39,6 +44,7 @@ class Wallet:
 
         Returns:
             Transaction: A new signed transaction ready for submission.
+
         """
         return Transaction(
             sender_pubkey=self.public_key_bytes,

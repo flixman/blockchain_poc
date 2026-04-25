@@ -3,18 +3,18 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 import logging
 import sys
 import textwrap
+from http import HTTPStatus
+from pathlib import Path
 
-import requests
 import pandas as pd
+import requests
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 
 from blockchain.transaction import Transaction
-
 
 DEFAULT_SERVER = "http://127.0.0.1:8000"
 
@@ -26,7 +26,7 @@ def _load_or_create_wallet(path: Path) -> tuple[ec.EllipticCurvePrivateKey, byte
     if path.exists():
         private_key = serialization.load_pem_private_key(path.read_bytes(), password=None)
         if not isinstance(private_key, ec.EllipticCurvePrivateKey):
-            raise TypeError(f"Expected an EC private key in {path}")
+            raise TypeError
     else:
         private_key = ec.generate_private_key(ec.SECP256K1())
         pem = private_key.private_bytes(
@@ -46,8 +46,8 @@ def _load_or_create_wallet(path: Path) -> tuple[ec.EllipticCurvePrivateKey, byte
 
 def _post_transaction(server: str, transaction: Transaction) -> None:
     response = requests.post(f"{server}/transactions/new", json=transaction.to_dict(), timeout=10)
-    if response.status_code != 201:
-        logger.error(f"transaction rejected: %s", response.text)
+    if response.status_code != HTTPStatus.CREATED:
+        logger.error("transaction rejected: %s", response.text)
         sys.exit(1)
     logger.info("transaction accepted")
 
@@ -58,17 +58,16 @@ def _show_blocks(server: str) -> None:
     blocks = response.json()
 
     for block in blocks:
-        transactions = []
-        for tx in block["transactions"]:
-            transactions.append(
-                {
-                    "sender_pubkey": tx["sender_pubkey"][:8],
-                    "recipient": tx["recipient"][:8],
-                    "amount": tx["amount"],
-                    "fee": tx["fee"],
-                    "signature": tx["signature"][:8],
-                }
-            )
+        transactions = [
+            {
+                "sender_pubkey": tx["sender_pubkey"][:8],
+                "recipient": tx["recipient"][:8],
+                "amount": tx["amount"],
+                "fee": tx["fee"],
+                "signature": tx["signature"][:8],
+            }
+            for tx in block["transactions"]
+        ]
 
         table = pd.DataFrame(transactions, columns=["sender_pubkey", "recipient", "amount", "fee", "signature"])
         block_summary = textwrap.indent(
@@ -120,7 +119,8 @@ if __name__ == "__main__":  # pragma: no cover
 
     if args.command == "init-wallet":
         if Path(args.wallet_file).exists():
-            raise SystemExit(f"wallet file already exists: {args.wallet_file}")
+            logger.error("wallet file already exists: %s", args.wallet_file)
+            sys.exit(0)
 
         private_key, public_key_bytes = _load_or_create_wallet(Path(args.wallet_file))
         logger.info("saved wallet to %s", args.wallet_file)
