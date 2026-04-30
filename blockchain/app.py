@@ -69,14 +69,17 @@ def create_app(node: Node | None = None) -> FastAPI:
 
     # ruff: disable[SLF001]
     @app.get("/blocks", status_code=status.HTTP_200_OK)
-    async def get_blocks() -> list[dict[str, object]]:  # pyright: ignore[reportUnusedFunction] # pragma: nocover
+    async def get_blocks() -> dict[str, list[dict[str, object]]]:  # pyright: ignore[reportUnusedFunction] # pragma: nocover
         """
-        Return the blockchain as JSON-serializable block data.
+        Return the blockchain and pending mempool transactions as JSON-serializable data.
 
         This method is here only for the sake of an example, so that
         students can retrieve the in-memory chain for inspection.
         """
-        return [block.to_dict() for block in _node._blockchain.chain]
+        return {
+            "blocks": [block.to_dict() for block in _node._blockchain.chain],
+            "mempool": [tx.to_dict() for tx in _node._mempool.top(len(_node._mempool))],
+        }
 
     @app.post("/wallets/{pubkey}/topup", status_code=status.HTTP_200_OK)
     async def top_up_wallet(pubkey: str) -> None:  # pyright: ignore[reportUnusedFunction] # pragma: nocover

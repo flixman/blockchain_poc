@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import sys
 import textwrap
@@ -52,36 +53,62 @@ def _post_transaction(server: str, transaction: Transaction) -> None:
     logger.info("transaction accepted")
 
 
-def _show_blocks(server: str) -> None:
+def _show_blocks(server: str, *, full: bool = False) -> None:
     response = requests.get(f"{server}/blocks", timeout=10)
     response.raise_for_status()
-    blocks = response.json()
+    data = response.json()
+    blocks = data["blocks"]
+    mempool = data["mempool"]
 
     for block in blocks:
-        transactions = [
-            {
-                "sender_pubkey": tx["sender_pubkey"][:8],
-                "recipient": tx["recipient"][:8],
-                "amount": tx["amount"],
-                "fee": tx["fee"],
-                "signature": tx["signature"][:8],
-            }
-            for tx in block["transactions"]
-        ]
+        if full:
+            tx_display = json.dumps(block["transactions"], indent=4) if block["transactions"] else "<no transactions>"
+        else:
+            transactions = [
+                {
+                    "sender_pubkey": tx["sender_pubkey"],
+                    "recipient": tx["recipient"],
+                    "amount": tx["amount"],
+                    "fee": tx["fee"],
+                    "signature": tx["signature"],
+                }
+                for tx in block["transactions"]
+            ]
+            table = pd.DataFrame(transactions, columns=["sender_pubkey", "recipient", "amount", "fee", "signature"])
+            tx_display = table.to_string(index=False, max_colwidth=11) if not table.empty else "<no transactions>"
 
-        table = pd.DataFrame(transactions, columns=["sender_pubkey", "recipient", "amount", "fee", "signature"])
         block_summary = textwrap.indent(
             (
                 f"\nblock index: {block['index']}\n"
                 f"timestamp: {block['timestamp']}\n"
                 f"nonce: {block['nonce']}\n"
                 f"difficulty: {block['difficulty']}\n"
-                f"previous_block_hash: {block['previous_block_hash'][:8]}\n"
-                f"{table.to_string(index=False) if not table.empty else '<no transactions>'}"
+                f"previous_block_hash: {block['previous_block_hash'][:8]}...\n"
+                f"{tx_display}"
             ),
             "    ",
         )
         logger.info("%s", block_summary)
+
+    if mempool:
+        if full:
+            mempool_display = json.dumps(mempool, indent=4)
+            logger.info("\n    --- mempool (%d pending) ---\n%s", len(mempool), textwrap.indent(mempool_display, "    "))
+        else:
+            mempool_rows = [
+                {
+                    "sender_pubkey": tx["sender_pubkey"],
+                    "recipient": tx["recipient"],
+                    "amount": tx["amount"],
+                    "fee": tx["fee"],
+                    "signature": tx["signature"],
+                }
+                for tx in mempool
+            ]
+            table = pd.DataFrame(mempool_rows, columns=["sender_pubkey", "recipient", "amount", "fee", "signature"])
+            logger.info("\n    --- mempool (%d pending) ---\n%s", len(mempool), textwrap.indent(table.to_string(index=False, max_colwidth=11), "    "))
+    else:
+        logger.info("    --- mempool (empty) ---")
 
 
 def _show_balance(server: str, public_key_hex: str) -> None:
@@ -113,7 +140,8 @@ if __name__ == "__main__":  # pragma: no cover
     send_parser.add_argument("--amount", type=int, required=True, help="Amount to transfer")
     send_parser.add_argument("--fee", type=int, default=0, help="Transaction fee")
 
-    subparsers.add_parser("blocks", help="Fetch and display the blockchain")
+    blocks_parser = subparsers.add_parser("blocks", help="Fetch and display the blockchain")
+    blocks_parser.add_argument("--full", action="store_true", help="Show full JSON for transactions instead of a summary table")
 
     args = parser.parse_args()
 
@@ -124,10 +152,10 @@ if __name__ == "__main__":  # pragma: no cover
 
         private_key, public_key_bytes = _load_or_create_wallet(Path(args.wallet_file))
         logger.info("saved wallet to %s", args.wallet_file)
-        logger.info("public key: %s", public_key_bytes.hex()[:8])
+        logger.info("public key: %s", public_key_bytes.hex())
     elif args.command == "show-wallet":
         private_key, public_key_bytes = _load_or_create_wallet(Path(args.wallet_file))
-        logger.info("public key: %s", public_key_bytes.hex()[:8])
+        logger.info("public key: %s", public_key_bytes.hex())
         _show_balance(args.server, public_key_bytes.hex())
     elif args.command == "topup-wallet":
         private_key, public_key_bytes = _load_or_create_wallet(Path(args.wallet_file))
@@ -143,4 +171,4 @@ if __name__ == "__main__":  # pragma: no cover
         )
         _post_transaction(args.server, transaction)
     elif args.command == "blocks":
-        _show_blocks(args.server)
+        _show_blocks(args.server, full=args.full)
